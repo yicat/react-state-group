@@ -239,8 +239,8 @@ export default class Group {
 
     const context = new Context(this, query);
     const actionHandler = this.actionMap[actionPath];
-
-    return Promise.resolve(actionHandler(context));
+    actionHandler(context);
+    return Promise.resolve(this.state);
   }
 
   _setState(stateKey: string, value: any): boolean {

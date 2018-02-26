@@ -36,8 +36,8 @@ export default class RootGroup extends Group {
     }
 
     const context = new Context(this, query);
-    const actionHandler = this.actionMap[path];
-    return Promise.resolve(actionHandler(context));
+    this.actionMap[path](context);
+    return Promise.resolve(this.state);
   }
 
   _getGroupPath(actionPath: string): { groupPath: string, actionName: string } {
