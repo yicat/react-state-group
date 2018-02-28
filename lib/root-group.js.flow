@@ -4,8 +4,6 @@ import Context from "./context";
 import MessageQueue from "./message-queue";
 import type { AnyMap } from "./type";
 
-console.log(Group);
-
 export default class RootGroup extends Group {
   constructor(state?: AnyMap) {
     super(state);

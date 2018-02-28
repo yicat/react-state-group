@@ -84,11 +84,11 @@ export default class Group {
 
   // 监听 action 请求
   action(name: string, fn: ActionHandler) {
-    if (!this.actionMap[name]) {
+    if (this.actionMap[name]) {
       throw new Error(`[RSG] the ${name} children alreay exists`);
     }
 
-    if (!this.childrenMap[name]) {
+    if (this.childrenMap[name]) {
       throw new Error(`[RSG] the ${name} group alreay exists`);
     }
 
