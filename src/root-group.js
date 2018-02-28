@@ -5,9 +5,6 @@ import MessageQueue from "./message-queue";
 import type { AnyMap } from "./type";
 
 export default class RootGroup extends Group {
-  mq: MessageQueue;
-  groupMap: { [name: string]: Group } = {};
-
   constructor(state?: AnyMap) {
     super(state);
 
@@ -15,14 +12,15 @@ export default class RootGroup extends Group {
     this.root = this;
     this.name = "root";
     this.path = "";
-    this.mq = new MessageQueue();
-    this.groupMap[this.path] = this;
+
+    this._mq = new MessageQueue();
+    this._groupMap[this.path] = this;
   }
 
   _do(path: string, query?: AnyMap): Promise<any> {
     if (path[0] === "/") {
       const { groupPath, actionName } = this._getGroupPath(path);
-      const group = this.groupMap[groupPath];
+      const group = this._groupMap[groupPath];
 
       if (group) {
         group._do(actionName, query);

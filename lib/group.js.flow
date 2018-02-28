@@ -1,7 +1,7 @@
 // @flow
 import * as utils from "./utils";
 import ShadowState from "./shadow-state";
-import RootGroup from "./root-group";
+import MessageQueue from "./message-queue";
 import Context from "./context";
 import type {
   AnyMap,
@@ -18,10 +18,14 @@ export default class Group {
   is_root: boolean = false;
   is_running: boolean = false;
 
+  // only for root
+  _mq: MessageQueue;
+  _groupMap: { [name: string]: Group } = {};
+
   name: string = "";
   path: string = "";
 
-  root: RootGroup;
+  root: Group;
   parent: Group;
   childrenMap: ChildrenMap = {};
 
@@ -185,10 +189,10 @@ export default class Group {
     this.childrenMap[name] = group;
 
     group.root = this.root;
-    group.root.mq.addListener("groupMount", this._groupMountHandler);
-    group.root.mq.addListener("groupUmount", this._groupUnmountHandler);
-    group.root.mq.addListener("groupChange", this._groupChangeHandler);
-    group.root.groupMap[group.path] = group;
+    group.root._mq.addListener("groupMount", this._groupMountHandler);
+    group.root._mq.addListener("groupUmount", this._groupUnmountHandler);
+    group.root._mq.addListener("groupChange", this._groupChangeHandler);
+    group.root._groupMap[group.path] = group;
 
     group._runAllHandler("@mount", {});
     group.is_running = true;
@@ -202,11 +206,11 @@ export default class Group {
 
     const group = this.childrenMap[name];
 
-    group.root.mq.removeListener("groupMount", this._groupMountHandler);
-    group.root.mq.removeListener("groupUmount", this._groupUnmountHandler);
-    group.root.mq.removeListener("groupChange", this._groupChangeHandler);
+    group.root._mq.removeListener("groupMount", this._groupMountHandler);
+    group.root._mq.removeListener("groupUmount", this._groupUnmountHandler);
+    group.root._mq.removeListener("groupChange", this._groupChangeHandler);
 
-    delete group.root.groupMap[group.path];
+    delete group.root._groupMap[group.path];
     delete this.childrenMap[name];
     delete group.root;
     delete group.parent;
@@ -225,7 +229,7 @@ export default class Group {
 
   _do(actionPath: string, query?: AnyMap): Promise<any> {
     // metrics
-    this.root.mq.emit("do", { group: this, actionPath, query, timestamp: Date.now() });
+    this.root._mq.emit("do", { group: this, actionPath, query, timestamp: Date.now() });
 
     // 跨 group 请求
     if (actionPath[0] === "/") {
@@ -239,13 +243,13 @@ export default class Group {
 
     const context = new Context(this, query);
     const actionHandler = this.actionMap[actionPath];
-    actionHandler(context);
-    return Promise.resolve(this.state);
+
+    return Promise.resolve(actionHandler(context));
   }
 
   _setState(stateKey: string, value: any): boolean {
     // metrics
-    this.root.mq.emit("groupChange", {
+    this.root._mq.emit("groupChange", {
       group: this,
       timestamp: Date.now(),
       changedState: { [stateKey]: value }

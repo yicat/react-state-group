@@ -4,7 +4,7 @@ import Context from "./context";
 import ShadowState from "./shadow-state";
 export type AnyMap = { [name: string]: any };
 
-export type ActionHandler = (context: Context) => void;
+export type ActionHandler = (context: Context) => any;
 export type ActionMap = { [name: string]: ActionHandler };
 
 export type ReactionHandler = (context: Context, changedState: AnyMap) => void;

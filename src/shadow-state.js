@@ -48,7 +48,7 @@ export default class ShadowState {
       fn(this.group.state);
     }
 
-    this.group.root.mq.emit("groupChange", {
+    this.group.root._mq.emit("groupChange", {
       group: this.group,
       timestamp: Date.now(),
       changedState: this.changedState
