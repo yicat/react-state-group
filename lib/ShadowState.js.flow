@@ -1,5 +1,5 @@
 // @flow
-import Group from "./group";
+import Group from "./Group";
 import type { AnyMap } from "./type";
 
 export default class ShadowState {

@@ -1,7 +1,7 @@
 // @flow
-import Group from "./group";
-import Context from "./context";
-import ShadowState from "./shadow-state";
+import Group from "./Group";
+import Context from "./Context";
+import ShadowState from "./ShadowState";
 export type AnyMap = { [name: string]: any };
 
 export type ActionHandler = (context: Context) => any;
@@ -16,7 +16,7 @@ export type SubscribeMap = { [name: string]: Array<SubscribeHandler> };
 export type ChildrenMap = { [name: string]: Group };
 
 export interface GroupInterface {
-  +is_root: boolean;
+  +is_app: boolean;
   +is_running: boolean;
 
   +name: string;
@@ -33,8 +33,6 @@ export interface GroupInterface {
   subscribeList(stateKeyList: Array<string>, fn: SubscribeHandler): void;
   unsubscribeList(stateKeyList: Array<string>, fn: SubscribeHandler): void;
   destroy(): void;
-  mountGroup(name: string, group: Group): void;
+  mountGroup(name: string, group: GroupInterface): void;
   unmountGroup(name: string): void;
 }
-
-export interface StateInterface {}

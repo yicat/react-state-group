@@ -1,12 +1,14 @@
 // @flow
-import Group from "./group";
-import ShadowState from "./shadow-state";
+import Group from "./Group";
+import ShadowState from "./ShadowState";
 import type { AnyMap } from "./type";
 
 export default class Context {
-  query: AnyMap;
-  group: Group;
-  state: AnyMap;
+  _target_group: Group;
+
+  global: AnyMap = {};
+  // local: AnyMap = {};
+  query: AnyMap = {};
 
   constructor(group: Group, query?: AnyMap) {
     if (!query) {
@@ -15,19 +17,19 @@ export default class Context {
       this.query = query;
     }
 
-    this.group = group;
-    this.state = group.state;
+    this._target_group = group;
+    this.global = group.root.state;
   }
 
   setState(stateKey: string, value: any) {
-    this.group._setState(stateKey, value);
+    this._target_group._setState(stateKey, value);
   }
 
   do(path: string, query?: AnyMap): Promise<any> {
-    return this.group._do(path, query);
+    return this._target_group._do(path, query);
   }
 
   shadowState(): ShadowState {
-    return this.group.shadowState();
+    return this._target_group.shadowState();
   }
 }

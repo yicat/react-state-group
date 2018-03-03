@@ -1,7 +1,7 @@
 // @flow
 import * as utils from "./utils";
-import ShadowState from "./shadow-state";
-import MessageQueue from "./message-queue";
+import ShadowState from "./ShadowState";
+import MessageQueue from "./MessageQueue";
 import Context from "./context";
 import type {
   AnyMap,
@@ -11,11 +11,12 @@ import type {
   SubscribeHandler,
   ReactionMap,
   ReactionHandler,
-  ChildrenMap
+  ChildrenMap,
+  GroupInterface
 } from "./type";
 
-export default class Group {
-  is_root: boolean = false;
+export default class Group implements GroupInterface {
+  is_app: boolean = false;
   is_running: boolean = false;
 
   // only for root
@@ -174,7 +175,11 @@ export default class Group {
   }
 
   // 挂载子 group
-  mountGroup(name: string, group: Group) {
+  mountGroup(name: string, group: GroupInterface) {
+    if (group.is_app) throw new Error("[RSG] group should not be AppGroup");
+
+    const noRootGroup: Group = (group: any);
+
     if (!this.actionMap[name]) {
       throw new Error(`[RSG] the ${name} children alreay exists`);
     }
@@ -183,19 +188,19 @@ export default class Group {
       throw new Error(`[RSG] the ${name} group alreay exists`);
     }
 
-    group.name = name;
-    group.path = `${group.name}/${this.name}`;
-    group.parent = this;
-    this.childrenMap[name] = group;
+    noRootGroup.name = name;
+    noRootGroup.path = `${group.name}/${this.name}`;
+    noRootGroup.parent = this;
+    this.childrenMap[name] = noRootGroup;
 
-    group.root = this.root;
-    group.root._mq.addListener("groupMount", this._groupMountHandler);
-    group.root._mq.addListener("groupUmount", this._groupUnmountHandler);
-    group.root._mq.addListener("groupChange", this._groupChangeHandler);
-    group.root._groupMap[group.path] = group;
+    noRootGroup.root = this.root;
+    this.root._mq.addListener("groupMount", this._groupMountHandler);
+    this.root._mq.addListener("groupUmount", this._groupUnmountHandler);
+    this.root._mq.addListener("groupChange", this._groupChangeHandler);
+    this.root._groupMap[group.path] = noRootGroup;
 
-    group._runAllHandler("@mount", {});
-    group.is_running = true;
+    noRootGroup._runAllHandler("@mount", {});
+    noRootGroup.is_running = true;
   }
 
   // 卸载子 group

@@ -1,14 +1,14 @@
 // @flow
-import Group from "./group";
-import Context from "./context";
-import MessageQueue from "./message-queue";
+import Group from "./Group";
+import Context from "./Context";
+import MessageQueue from "./MessageQueue";
 import type { AnyMap } from "./type";
 
-export default class RootGroup extends Group {
+export default class AppGroup extends Group {
   constructor(state?: AnyMap) {
     super(state);
 
-    this.is_root = true;
+    this.is_app = true;
     this.root = this;
     this.name = "root";
     this.path = "";
@@ -23,8 +23,7 @@ export default class RootGroup extends Group {
       const group = this._groupMap[groupPath];
 
       if (group) {
-        group._do(actionName, query);
-        return Promise.resolve(group.state);
+        return group._do(actionName, query);
       }
     }
 
