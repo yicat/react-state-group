@@ -1,7 +1,7 @@
 // @flow
 import Group from "./Group";
 import Context from "./Context";
-import MessageQueue from "./MessageQueue";
+import broker from "./broker";
 import type { AnyMap } from "./type";
 
 export default class AppGroup extends Group {
@@ -12,24 +12,20 @@ export default class AppGroup extends Group {
     this.root = this;
     this.name = "root";
     this.path = "";
-
-    this._mq = new MessageQueue();
-    this._groupMap[this.path] = this;
+    this.is_running = true;
   }
 
   _do(path: string, query?: AnyMap): Promise<any> {
     if (path[0] === "/") {
-      const { groupPath, actionName } = this._getGroupPath(path);
-      const group = this._groupMap[groupPath];
+      const { groupPath, actionName } = this._getGroupPath(path.slice(1));
+      const group = this._getGroup(groupPath);
 
-      if (group) {
-        return group._do(actionName, query);
-      }
+      return group._do(actionName, query);
     }
 
     // root 的 action
     if (!this.actionMap[path]) {
-      return Promise.reject("unknow path: " + path);
+      return Promise.reject("[RSG] unknow action path: " + path);
     }
 
     const context = new Context(this, query);
@@ -37,9 +33,23 @@ export default class AppGroup extends Group {
     return Promise.resolve(actionHandler(context));
   }
 
+  _getGroup(groupPath: string): Group {
+    let crtGroup = this;
+    const groupPathList = groupPath.split("/");
+
+    for (let i = 0, len = groupPathList.length; i < len; i++) {
+      crtGroup = crtGroup.childrenMap[groupPathList[i]];
+      if (!crtGroup) {
+        throw new Error("[RSG] unknow group path: " + groupPath);
+      }
+    }
+
+    return crtGroup;
+  }
+
   _getGroupPath(actionPath: string): { groupPath: string, actionName: string } {
     if (actionPath === "/") {
-      throw new Error("[RSG] actionPath error: " + actionPath);
+      throw new Error("[RSG] unknow action path: " + actionPath);
     }
 
     const pathList = actionPath.split("/");

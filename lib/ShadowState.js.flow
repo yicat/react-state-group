@@ -1,5 +1,6 @@
 // @flow
 import Group from "./Group";
+import broker from "./broker";
 import type { AnyMap } from "./type";
 
 export default class ShadowState {
@@ -48,7 +49,7 @@ export default class ShadowState {
       fn(this.group.state);
     }
 
-    this.group.root._mq.emit("groupChange", {
+    broker.emit("groupChange", {
       group: this.group,
       timestamp: Date.now(),
       changedState: this.changedState

@@ -1,8 +1,8 @@
 // @flow
 import * as utils from "./utils";
 import ShadowState from "./ShadowState";
-import MessageQueue from "./MessageQueue";
-import Context from "./context";
+import Context from "./Context";
+import broker from "./broker";
 import type {
   AnyMap,
   ActionMap,
@@ -15,13 +15,10 @@ import type {
   GroupInterface
 } from "./type";
 
+// TODO group path 初始化流程有问题
 export default class Group implements GroupInterface {
   is_app: boolean = false;
   is_running: boolean = false;
-
-  // only for root
-  _mq: MessageQueue;
-  _groupMap: { [name: string]: Group } = {};
 
   name: string = "";
   path: string = "";
@@ -36,22 +33,18 @@ export default class Group implements GroupInterface {
 
   /*  
   * 特殊的触发事件 
-  *  * @mount: 挂载
-  *  * @unmount: 卸载
+  *  * @mount: 挂载，执行后清空
+  *  * @unmount: 卸载，执行后清空
   *  * @groupMount: group 挂载
   *  * @groupUnmount: group 卸载
   *  * @stateChange: group 上的 state 变动
-  *  * @willDestroy: 准备 destroy
-  *  * @didDestroy: 完成 destroy
   */
   subscribeMap: SubscribeMap = {
     "@mount": [],
     "@unmount": [],
     "@groupMount": [],
     "@groupUnmount": [],
-    "@stateChange": [],
-    "@willDestory": [],
-    "@didDestory": []
+    "@stateChange": []
   };
 
   // 支持 version 功能
@@ -117,10 +110,7 @@ export default class Group implements GroupInterface {
   // 更新状态，触发 group 变化
   setState(stateKey: string, value: any) {
     if (!this.is_running) {
-      this.subscribeMap["@mount"].push(() => {
-        this._setState(stateKey, value);
-      });
-
+      this.subscribeMap["@mount"].push(() => this._setState(stateKey, value));
       return;
     }
 
@@ -180,27 +170,34 @@ export default class Group implements GroupInterface {
 
     const noRootGroup: Group = (group: any);
 
-    if (!this.actionMap[name]) {
-      throw new Error(`[RSG] the ${name} children alreay exists`);
-    }
-
-    if (!this.childrenMap[name]) {
+    if (this.actionMap[name]) {
       throw new Error(`[RSG] the ${name} group alreay exists`);
     }
 
-    noRootGroup.name = name;
-    noRootGroup.path = `${group.name}/${this.name}`;
-    noRootGroup.parent = this;
-    this.childrenMap[name] = noRootGroup;
+    if (this.childrenMap[name]) {
+      throw new Error(`[RSG] the ${name} children alreay exists`);
+    }
 
-    noRootGroup.root = this.root;
-    this.root._mq.addListener("groupMount", this._groupMountHandler);
-    this.root._mq.addListener("groupUmount", this._groupUnmountHandler);
-    this.root._mq.addListener("groupChange", this._groupChangeHandler);
-    this.root._groupMap[group.path] = noRootGroup;
+    const mountChild = () => {
+      noRootGroup.name = name;
+      noRootGroup.path = `${this.name}/${group.name}`;
+      noRootGroup.parent = this;
+      this.childrenMap[name] = noRootGroup;
+      noRootGroup.root = this.root;
 
-    noRootGroup._runAllHandler("@mount", {});
-    noRootGroup.is_running = true;
+      broker.addListener("groupMount", this._groupMountHandler.bind(this));
+      broker.addListener("groupUmount", this._groupUnmountHandler.bind(this));
+      broker.addListener("groupChange", this._groupChangeHandler.bind(this));
+
+      noRootGroup.is_running = true;
+      noRootGroup._runAllHandler("@mount", {});
+    };
+
+    if (!this.is_running) {
+      this.subscribeMap["@mount"].push(mountChild);
+    } else {
+      mountChild();
+    }
   }
 
   // 卸载子 group
@@ -211,11 +208,10 @@ export default class Group implements GroupInterface {
 
     const group = this.childrenMap[name];
 
-    group.root._mq.removeListener("groupMount", this._groupMountHandler);
-    group.root._mq.removeListener("groupUmount", this._groupUnmountHandler);
-    group.root._mq.removeListener("groupChange", this._groupChangeHandler);
+    broker.removeListener("groupMount", this._groupMountHandler.bind(this));
+    broker.removeListener("groupUmount", this._groupUnmountHandler.bind(this));
+    broker.removeListener("groupChange", this._groupChangeHandler.bind(this));
 
-    delete group.root._groupMap[group.path];
     delete this.childrenMap[name];
     delete group.root;
     delete group.parent;
@@ -225,16 +221,12 @@ export default class Group implements GroupInterface {
 
   // 主动销毁自身
   destroy() {
-    this._runAllHandler("@willDestroy", {});
     this.is_running = false;
     this.parent.unmountGroup(this.name);
-
-    this._runAllHandler("@didDestroy", {});
   }
 
   _do(actionPath: string, query?: AnyMap): Promise<any> {
-    // metrics
-    this.root._mq.emit("do", { group: this, actionPath, query, timestamp: Date.now() });
+    broker.emit("do", { group: this, actionPath, query, timestamp: Date.now() });
 
     // 跨 group 请求
     if (actionPath[0] === "/") {
@@ -252,20 +244,12 @@ export default class Group implements GroupInterface {
     return Promise.resolve(actionHandler(context));
   }
 
-  _setState(stateKey: string, value: any): boolean {
+  _setState(stateKey: string, value: any): void {
     // metrics
-    this.root._mq.emit("groupChange", {
-      group: this,
-      timestamp: Date.now(),
-      changedState: { [stateKey]: value }
-    });
+    broker.emit("groupChange", { group: this, timestamp: Date.now(), changedState: { [stateKey]: value } });
 
-    if (this.state[stateKey] || this.shadowState[stateKey]) {
-      throw new Error("[RSG] the statusKey: " + stateKey + " alreay exists");
-    }
-
-    if (!this.state[stateKey]) {
-      return false;
+    if (this.state[stateKey] === undefined) {
+      throw new Error("[RSG] not found state key: " + stateKey);
     }
 
     this.state[stateKey] = value;
@@ -273,8 +257,6 @@ export default class Group implements GroupInterface {
     if (this.subscribeMap[stateKey]) {
       this._runAllHandler(stateKey, this.state);
     }
-
-    return true;
   }
 
   _groupMountHandler(msg: any) {
@@ -304,6 +286,10 @@ export default class Group implements GroupInterface {
       for (let i = 0, len = this.subscribeMap[name].length; i < len; i++) {
         this.subscribeMap[name][i](args);
       }
+    }
+
+    if (name === "@mount" || name === "@unmount") {
+      this.subscribeMap[name] = [];
     }
   }
 }

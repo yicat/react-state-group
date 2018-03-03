@@ -1,6 +1,6 @@
 // @flow
-import Group from "./group";
-import AppGroup from "./appGroup";
+import Group from "./Group";
+import AppGroup from "./AppGroup";
 import type { AnyMap, GroupInterface } from "./type";
 
 export function group(state?: AnyMap): GroupInterface {
