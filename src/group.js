@@ -120,7 +120,7 @@ export default class Group implements GroupInterface {
   subscribe(stateKey: string, fn: SubscribeHandler): void {
     if (stateKey === "") return;
 
-    if (!this.state[stateKey]) {
+    if (this.state[stateKey] === undefined) {
       throw new Error("[RSG] not found stateKey: " + stateKey);
     }
 
@@ -133,7 +133,7 @@ export default class Group implements GroupInterface {
 
   // 取消订阅状态
   unsubscribe(stateKey: string, fn: SubscribeHandler): void {
-    if (!this.state[stateKey]) return;
+    if (this.state[stateKey] === undefined) return;
     if (!this.subscribeMap[stateKey] || this.subscribeMap[stateKey].length === 0) return;
 
     const index = this.subscribeMap[stateKey].indexOf(fn);
