@@ -1,6 +1,5 @@
 // @flow
 import * as utils from "./utils";
-import ShadowState from "./ShadowState";
 import Context from "./Context";
 import broker from "./broker";
 import type {
@@ -108,17 +107,13 @@ export default class Group implements GroupInterface {
   }
 
   // 更新状态，触发 group 变化
-  setState(stateKey: string, value: any) {
+  setState(patchedState?: AnyMap) {
     if (!this.is_running) {
-      this.subscribeMap["@mount"].push(() => this._setState(stateKey, value));
+      this.subscribeMap["@mount"].push(() => this._setState(patchedState));
       return;
     }
 
-    this._setState(stateKey, value);
-  }
-
-  shadowState(): ShadowState {
-    return new ShadowState(this);
+    this._setState(patchedState);
   }
 
   // 订阅状态
@@ -244,19 +239,26 @@ export default class Group implements GroupInterface {
     return Promise.resolve(actionHandler(context));
   }
 
-  _setState(stateKey: string, value: any): void {
-    // metrics
-    broker.emit("groupChange", { group: this, timestamp: Date.now(), changedState: { [stateKey]: value } });
+  _setState(patchedState?: AnyMap): void {
+    if (!patchedState) return;
 
-    if (this.state[stateKey] === undefined) {
-      throw new Error("[RSG] not found state key: " + stateKey);
+    if (!utils.isPlainObject(patchedState)) {
+      throw new Error("[RSG] patchedState must be primitive object");
     }
 
-    this.state[stateKey] = value;
+    this.state = Object.assign({}, this.state, patchedState);
 
-    if (this.subscribeMap[stateKey]) {
-      this._runAllHandler(stateKey, this.state);
+    const keys = Object.keys(patchedState);
+    for (let i = 0, len = keys.length; i < len; i++) {
+      this._runAllHandler(keys[i], this.state);
     }
+
+    broker.emit("groupChange", {
+      group: this,
+      timestamp: Date.now(),
+      changedKeys: keys,
+      nextState: this.state
+    });
   }
 
   _groupMountHandler(msg: any) {

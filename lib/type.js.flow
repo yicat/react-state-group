@@ -1,7 +1,6 @@
 // @flow
 import Group from "./Group";
 import Context from "./Context";
-import ShadowState from "./ShadowState";
 export type AnyMap = { [name: string]: any };
 
 export type ActionHandler = (context: Context) => any;
@@ -26,8 +25,7 @@ export interface GroupInterface {
   do(actionPath: string, query?: AnyMap): Promise<any>;
   reaction(groupPath: string, fn: ReactionHandler): void;
   action(name: string, fn: ActionHandler): void;
-  setState(stateKey: string, value: any): void;
-  shadowState(): ShadowState;
+  setState(patchedState: AnyMap): void;
   subscribe(stateKey: string, fn: SubscribeHandler): void;
   unsubscribe(stateKey: string, fn: SubscribeHandler): void;
   subscribeList(stateKeyList: Array<string>, fn: SubscribeHandler): void;

@@ -17,7 +17,7 @@ export default class AppGroup extends Group {
 
   _do(path: string, query?: AnyMap): Promise<any> {
     if (path[0] === "/") {
-      const { groupPath, actionName } = this._getGroupPath(path.slice(1));
+      const { groupPath, actionName } = this._getGroupPath(path);
       const group = this._getGroup(groupPath);
 
       return group._do(actionName, query);
@@ -35,8 +35,10 @@ export default class AppGroup extends Group {
 
   _getGroup(groupPath: string): Group {
     let crtGroup = this;
-    const groupPathList = groupPath.split("/");
 
+    if (groupPath === "") return crtGroup;
+
+    const groupPathList = groupPath.slice(1).split("/");
     for (let i = 0, len = groupPathList.length; i < len; i++) {
       crtGroup = crtGroup.childrenMap[groupPathList[i]];
       if (!crtGroup) {

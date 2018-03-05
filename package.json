@@ -1,6 +1,6 @@
 {
   "name": "react-state-group",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "react state group",
   "main": "lib/index.js",
   "scripts": {

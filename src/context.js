@@ -1,6 +1,5 @@
 // @flow
 import Group from "./Group";
-import ShadowState from "./ShadowState";
 import type { AnyMap } from "./type";
 
 export default class Context {
@@ -21,15 +20,11 @@ export default class Context {
     this.global = group.root.state;
   }
 
-  setState(stateKey: string, value: any) {
-    this._target_group._setState(stateKey, value);
+  setState(patchedState?: AnyMap) {
+    this._target_group._setState(patchedState);
   }
 
   do(path: string, query?: AnyMap): Promise<any> {
     return this._target_group._do(path, query);
-  }
-
-  shadowState(): ShadowState {
-    return this._target_group.shadowState();
   }
 }
