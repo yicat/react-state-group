@@ -6,8 +6,17 @@ type Listener = (msg: AnyMap) => void;
 
 class Broker {
   listenerMap: { [name: string]: Array<Listener> } = {};
+  bypassFn: (emitName: string, emitMessage: string) => void;
+
+  bypass(fn: Function) {
+    this.bypassFn = fn;
+  }
 
   emit(name: string, msg: any) {
+    if (this.bypassFn) {
+      this.bypassFn(name, msg);
+    }
+
     if (this.listenerMap[name]) {
       const listenerArray: any = this.listenerMap[name];
       for (let i = 0, len = listenerArray.length; i < len; i++) {

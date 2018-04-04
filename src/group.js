@@ -14,8 +14,7 @@ import type {
   GroupInterface
 } from "./type";
 
-// TODO group path 初始化流程有问题
-export default class Group implements GroupInterface {
+export default class Group {
   is_app: boolean = false;
   is_running: boolean = false;
 
@@ -95,7 +94,7 @@ export default class Group implements GroupInterface {
 
   // 监听 group 变化
   reaction(groupPath: string, fn: ReactionHandler) {
-    if (groupPath !== "/") {
+    if (groupPath[0] !== "/") {
       throw new Error("[RSG] the groupPath must be start with /");
     }
 
@@ -160,7 +159,7 @@ export default class Group implements GroupInterface {
   }
 
   // 挂载子 group
-  mountGroup(name: string, group: GroupInterface) {
+  mountGroup(name: string, group: Group) {
     if (group.is_app) throw new Error("[RSG] group should not be AppGroup");
 
     const noRootGroup: Group = (group: any);
@@ -175,14 +174,14 @@ export default class Group implements GroupInterface {
 
     const mountChild = () => {
       noRootGroup.name = name;
-      noRootGroup.path = `${this.name}/${group.name}`;
+      noRootGroup.path = this.path === "/" ? `/${group.name}` : `${this.path}/${group.name}`;
       noRootGroup.parent = this;
       this.childrenMap[name] = noRootGroup;
       noRootGroup.root = this.root;
 
-      broker.addListener("groupMount", this._groupMountHandler.bind(this));
-      broker.addListener("groupUmount", this._groupUnmountHandler.bind(this));
-      broker.addListener("groupChange", this._groupChangeHandler.bind(this));
+      broker.addListener("groupMount", group._groupMountHandler);
+      broker.addListener("groupUmount", group._groupUnmountHandler);
+      broker.addListener("groupChange", group._groupChangeHandler);
 
       noRootGroup.is_running = true;
       noRootGroup._runAllHandler("@mount", {});
@@ -203,9 +202,9 @@ export default class Group implements GroupInterface {
 
     const group = this.childrenMap[name];
 
-    broker.removeListener("groupMount", this._groupMountHandler.bind(this));
-    broker.removeListener("groupUmount", this._groupUnmountHandler.bind(this));
-    broker.removeListener("groupChange", this._groupChangeHandler.bind(this));
+    broker.removeListener("groupMount", group._groupMountHandler);
+    broker.removeListener("groupUmount", group._groupUnmountHandler);
+    broker.removeListener("groupChange", group._groupChangeHandler);
 
     delete this.childrenMap[name];
     delete group.root;
@@ -256,34 +255,33 @@ export default class Group implements GroupInterface {
     broker.emit("groupChange", {
       group: this,
       timestamp: Date.now(),
-      changedKeys: keys,
-      nextState: this.state
+      changedState: patchedState
     });
   }
 
-  _groupMountHandler(msg: any) {
+  _groupMountHandler = (msg: any) => {
     // 触发所有 @groupChange 的监听者
     this._runAllHandler("@groupMount", { groupPath: msg.group.path });
-  }
+  };
 
-  _groupUnmountHandler(msg: any) {
+  _groupUnmountHandler = (msg: any) => {
     this._runAllHandler("@groupUnmount", { groupPath: msg.group.path });
-  }
+  };
 
-  _groupChangeHandler(msg: any) {
+  _groupChangeHandler = (msg: any) => {
     const groupPath = msg.group.path;
 
     if (this.reactionMap[groupPath]) {
       const reactionHandlerList = this.reactionMap[groupPath];
+
       for (let i = 0, len = reactionHandlerList.length; i < len; i++) {
-        const context = new Context(msg.group, {});
         const reactionHandler = this.reactionMap[groupPath][i];
-        reactionHandler(context, msg.changedState);
+        reactionHandler(msg.changedState, msg.group.state);
       }
     }
-  }
+  };
 
-  _runAllHandler(name: string, args: any) {
+  _runAllHandler = (name: string, args: any) => {
     if (this.subscribeMap[name]) {
       for (let i = 0, len = this.subscribeMap[name].length; i < len; i++) {
         this.subscribeMap[name][i](args);
@@ -293,5 +291,5 @@ export default class Group implements GroupInterface {
     if (name === "@mount" || name === "@unmount") {
       this.subscribeMap[name] = [];
     }
-  }
+  };
 }

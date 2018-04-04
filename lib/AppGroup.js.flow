@@ -11,8 +11,12 @@ export default class AppGroup extends Group {
     this.is_app = true;
     this.root = this;
     this.name = "root";
-    this.path = "";
+    this.path = "/";
     this.is_running = true;
+  }
+
+  bypass(fn: Function) {
+    broker.bypass(fn);
   }
 
   _do(path: string, query?: AnyMap): Promise<any> {

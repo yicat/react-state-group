@@ -6,7 +6,7 @@ export type AnyMap = { [name: string]: any };
 export type ActionHandler = (context: Context) => any;
 export type ActionMap = { [name: string]: ActionHandler };
 
-export type ReactionHandler = (context: Context, changedState: AnyMap) => void;
+export type ReactionHandler = (changedState: AnyMap, state: AnyMap) => void;
 export type ReactionMap = { [name: string]: Array<ReactionHandler> };
 
 export type SubscribeHandler = (state: AnyMap) => void;
