@@ -1,9 +1,8 @@
 // @flow
 import Group from "./Group";
-import Context from "./Context";
 export type AnyMap = { [name: string]: any };
 
-export type ActionHandler = (context: Context) => any;
+export type ActionHandler = (query: void | AnyMap) => any;
 export type ActionMap = { [name: string]: ActionHandler };
 
 export type ReactionHandler = (changedState: AnyMap, state: AnyMap) => void;

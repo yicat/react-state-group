@@ -1,6 +1,6 @@
 {
   "name": "react-state-group",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "react state group",
   "main": "lib/index.js",
   "scripts": {
@@ -26,18 +26,21 @@
   "homepage": "https://github.com/yicat/react-state-group#readme",
   "devDependencies": {
     "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.0",
     "babel-jest": "^22.4.1",
+    "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-preset-env": "^1.6.1",
     "babel-preset-flow": "^6.23.0",
     "babel-preset-react": "^6.24.1",
-    "babel-preset-stage-0": "^6.24.1",
     "flow-bin": "^0.66.0",
     "flow-copy-source": "^1.3.0",
     "jest": "^22.4.0",
     "regenerator-runtime": "^0.11.1"
   },
   "dependencies": {
-    "react": "^16.2.0"
+    "react": "^16.2.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-flow": "^6.23.0",
+    "babel-preset-react": "^6.24.1"
   }
 }

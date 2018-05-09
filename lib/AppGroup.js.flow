@@ -1,6 +1,5 @@
 // @flow
 import Group from "./Group";
-import Context from "./Context";
 import broker from "./broker";
 import type { AnyMap } from "./type";
 
@@ -32,9 +31,8 @@ export default class AppGroup extends Group {
       return Promise.reject("[RSG] unknow action path: " + path);
     }
 
-    const context = new Context(this, query);
     const actionHandler = this.actionMap[path];
-    return Promise.resolve(actionHandler(context));
+    return Promise.resolve(actionHandler(query));
   }
 
   _getGroup(groupPath: string): Group {

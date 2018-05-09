@@ -1,6 +1,5 @@
 // @flow
 import * as utils from "./utils";
-import Context from "./Context";
 import broker from "./broker";
 import type {
   AnyMap,
@@ -232,10 +231,9 @@ export default class Group {
       return Promise.reject("unknow path: " + actionPath);
     }
 
-    const context = new Context(this, query);
     const actionHandler = this.actionMap[actionPath];
 
-    return Promise.resolve(actionHandler(context));
+    return Promise.resolve(actionHandler(query));
   }
 
   _setState(patchedState?: AnyMap): void {
